@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "packing3d"
+version = "0.1.0"
+description = "A package for calculating packing density of particles in Cartesian and cylindrical coordinate systems."
+authors = [
+    { name = "Freddie Barter", email = "fjbarter@outlook.com" }
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["packing density", "cartesian", "cylindrical", "geometry", "particles"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+dependencies = [
+    "numpy>=1.21",
+    "scipy>=1.7",
+    "pyvista>=0.34",
+]
+
+[tool.setuptools]
+packages = ["packing3d"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+packing3d = ["*.py"]  # Include all Python files in the package
