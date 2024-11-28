@@ -1,4 +1,4 @@
-# Packing Density Calculator
+# Packing3D
 
 A Python package for calculating the packing density of particles in 3D Cartesian and cylindrical coordinate systems.
 
@@ -138,13 +138,16 @@ print(f"Packing Density: {packing_density}")
 
 #### Description
 
-Generates a cylindrical mesh with division indices for radial, angular, and z-direction partitions.
+Generates a cylindrical mesh with division indices for radial, angular, and z-direction partitions. There is an inner cylindrical cell, created to avoid problems associated with converging radial lines.
+
+The mesh cells created all have a constant volume, with theta_divisions determining the number of cells in the first ring, outside the inner cylindrical cell. If radius_inner is None, it will have a radius equal to the width of each radial division.
 
 #### Args
 
 - `radius` (*float*): Radius of the cylindrical region.
 - `height` (*float*): Height of the cylindrical region.
 - `r_divisions`, `theta_divisions`, `z_divisions` (*int*): Number of divisions in radial, angular, and z directions.
+- 'radius_inner' (float, optional): Radius of the inner cylindrical cell. Defaults to radius / r_divisions.
 
 #### Returns
 
