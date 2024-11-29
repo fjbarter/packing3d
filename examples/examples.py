@@ -1,4 +1,4 @@
-from packing3d import *
+from packing3d_root.packing3d import *
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -148,10 +148,10 @@ def example1() -> None:
 
 def example2() -> None:
     # This example is a check for a manually formed vtk file for a simple cubic
-    # lattice containing 101^3 particles. Both coordinate systems are used, 
+    # lattice containing 41^3 particles. Both coordinate systems are used, 
     # and the boundaries of both can be modified to experiment with.
 
-    file = r"post\centered_simple_cubic_spheres_1030301.vtk"
+    file = r"post\centered_simple_cubic_spheres_68921.vtk"
 
     # Preload the dataset
     print("Loading file...")
@@ -162,7 +162,7 @@ def example2() -> None:
     # Convert to cylindrical coordinates
     r_data, theta_data = convert_to_cylindrical(x_data, y_data)
 
-    a = 100*0.004
+    a = 40*0.004
 
     boundaries_3d = {
         "x_min" : -a,
@@ -181,8 +181,6 @@ def example2() -> None:
                                                  radii=radii,
                                                  cylinder_radius=None)
 
-
-    print(packing_density_3d)
     
     boundaries_cyl = {
         "r_min"     :  -1,
@@ -201,7 +199,9 @@ def example2() -> None:
                                                  radii=radii,
                                                  accurate_cylindrical=False)
     
-    print(packing_density_cyl)
+    print(f"Cartesian Packing Density:    {packing_density_3d}")
+    print(f"Cylindrical Packing Density:  {packing_density_cyl}")
+    print(f"Simple Cubic Packing Density: {np.pi/6}")
 
 
 def example3() -> None:
@@ -295,4 +295,4 @@ def example3() -> None:
 
 
 if __name__ == "__main__":
-    example1()
+    example2()

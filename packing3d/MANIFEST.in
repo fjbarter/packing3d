@@ -1,7 +1,0 @@
-include LICENSE
-include README.md
-include pyproject.toml
-include requirements.txt
-
-recursive-include packing3d *.py
-recursive-include examples *.py *.vtk
