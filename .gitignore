@@ -3,6 +3,13 @@ __pycache__
 .py[cod]
 $py.class
 
+# Ignore package build artifacts
+/dist/
+/build/
+/*.egg-info
+*.tar.gz
+*.whl
+
 # C extensions
 .so
 
