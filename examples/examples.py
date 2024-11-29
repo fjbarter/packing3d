@@ -1,4 +1,4 @@
-from packing3d_root.packing3d import *
+from packing3d import *
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -295,4 +295,4 @@ def example3() -> None:
 
 
 if __name__ == "__main__":
-    example2()
+    example1()
