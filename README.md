@@ -1,6 +1,9 @@
 # Packing3D
 
-A Python package for calculating the packing density of particles in 3D Cartesian and cylindrical coordinate systems.
+A Python package for calculating the local and bulk packing density of particles in 3D Cartesian and cylindrical coordinate systems, with capability to mesh a region and visualise packing density distribution.
+
+![Example Image1](https://github.com/fjbarter/packing3d/blob/main/source/Before_After_Vibration.png?raw=true)
+Above image: Cross-sectional packing density distribution of 100,000 particles (~500-600 microns) in a cylindrical container of diameter 75 mm, with packing density calculated from z = [0.005 m, 0.020 m].
 
 ---
 
