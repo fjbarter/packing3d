@@ -18,6 +18,7 @@ A Python package for calculating the packing density of particles in 3D Cartesia
   - [retrieve_coordinates](#retrieve_coordinates)
 - [How It Works](#how-it-works)
 - [Testing](#testing)
+- [Examples](#examples)
 - [Limitations](#limitations)
 - [Planned Features](#planned-features)
 - [License](#license)
@@ -27,7 +28,8 @@ A Python package for calculating the packing density of particles in 3D Cartesia
 
 ## Requirements
 
-- **Python 3.8 or later**
+- **Python 3.8 or later***
+- ***WARNING: As of 28th Nov 2024, the VTK dependency of PyVista does not work with Python 3.13**
 
 ### Dependencies
 
@@ -45,7 +47,7 @@ The package is available on PyPI and can be installed via:
 pip install packing3d
 ```
 
-Alternatively, 
+Alternatively, clone the repository at https://github.com/fjbarter/packing3d/ and install manually from the local files.
 
 ---
 
@@ -83,13 +85,16 @@ print(f"Packing Density: {packing_density}")
 
 #### Description
 
-Generates a Cartesian mesh that can approximate a cuboidal or cylindrical region.
+Generates a Cartesian mesh that can approximate a cuboidal or cylindrical region. If cylindrical_mesh_shape is specified True, the exact volume of the cartesian cells which overlap the cylinder walls is calculated and used for the packing density, so there is no need to worry about incorrectly low packing densities at the wall (although they will still be low!).
 
 #### Args
 
 - `x_divisions`, `y_divisions`, `z_divisions` (*int*): Number of divisions along the x, y, and z axes.
 - `boundaries` (*dict*, optional): Dictionary defining the boundaries of the Cartesian region.
+- `cylindrical_mesh_shape` (*bool*, optional): Boolean that creates a cylindrical mesh shape with cartesian cells.
 - `radius` (*float*, optional): Radius of the cylindrical region to approximate, if applicable.
+- `base_level` (*float*, optional): Base level of the cylinder in the z-direction.
+- `height` (*float*, optional): Height of the cylindrical region for meshing
 
 #### Returns
 
@@ -100,7 +105,9 @@ Generates a Cartesian mesh that can approximate a cuboidal or cylindrical region
 ```python
 from packing3d import generate_cartesian_mesh
 
-mesh = generate_cartesian_mesh(x_divisions=10, y_divisions=10, z_divisions=5)
+mesh = generate_cartesian_mesh(x_divisions=10, y_divisions=10, z_divisions=5,
+                               boundaries=boundaries, cylindrical_mesh_shape=False,
+                               radius=None, base_level=None, height=None)
 print(mesh)
 ```
 
@@ -238,7 +245,13 @@ Extracts x, y, z coordinates and radii from the dataset.
 ## Testing
 
 - **Unit Tests**: Planned for future releases to ensure accuracy and reliability.
-- **Sample Data**: `.vtk` files will be provided for testing.
+- **Sample Data**: `.vtk` files are provided for testing in the examples directory.
+
+---
+
+## Examples
+
+- `examples.py` in the examples directory provides three examples with corresponding vtk files.
 
 ---
 
