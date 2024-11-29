@@ -3,4 +3,4 @@ include README.md
 include pyproject.toml
 include requirements.txt
 
-recursive-include examples *
+recursive-include packing3d/examples *
