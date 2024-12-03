@@ -261,8 +261,8 @@ def calculate_particle_volume_cyl(i, radii, active_overlap_values,
 
 
 def generate_cylindrical_mesh(radius, base_level, height, r_divisions,
-                              theta_divisions, z_divisions,
-                              radius_inner=None):
+                              z_divisions, theta_divisions=None,
+                              constant_volume=True):
     """
     Generate a cylindrical mesh with division indices, including a special
     inner cell at each z-layer.
@@ -272,10 +272,11 @@ def generate_cylindrical_mesh(radius, base_level, height, r_divisions,
         base_level (float): Base level of the cylinder (z_min).
         height (float): Height of the cylinder (z_max - z_min).
         r_divisions (int): Number of radial divisions.
-        theta_divisions (int): Number of angular divisions.
+        theta_divisions (int, optional): Number of angular divisions.
         z_divisions (int): Number of vertical divisions.
-        radius_inner (float, optional): Radius of the inner cylindrical cell.
-                                        Defaults to radius / r_divisions.
+        constant_volume (bool, optional): Set cells to constant volume or not.
+                                          Only compatible with theta_divisions
+                                          = 3 (default)
 
     Returns:
         list: A list of tuples, each containing (indices, boundaries).
@@ -283,7 +284,15 @@ def generate_cylindrical_mesh(radius, base_level, height, r_divisions,
     """
 
     # Calculate radius_inner for the central cylindrical cell
-    if radius_inner is None:
+    if constant_volume:
+        if theta_divisions is not None and theta_divisions != 3:
+            raise ValueError("""theta_divisions must equal 3 for constant
+                             volume cells and constant radial divisions.
+                             (Dynamic radial divisions not yet supported)""")
+        else:
+            theta_divisions = 3
+            radius_inner = radius / r_divisions
+    else:
         radius_inner = radius / r_divisions
 
     # Radial boundaries
@@ -328,7 +337,8 @@ def generate_cylindrical_mesh(radius, base_level, height, r_divisions,
             if theta_divisions == 1:
                 layer_theta_divisions = 1
             else:
-                layer_theta_divisions = max(1, int(layer_volume/target_volume))
+                layer_theta_divisions = max(1, int(round(
+                    layer_volume/target_volume)))
 
             # Angular boundaries for this layer
             theta_bounds = np.linspace(0, 2 * np.pi, layer_theta_divisions + 1)
