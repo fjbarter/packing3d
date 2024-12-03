@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "packing3d"
-version = "0.1.3"
+version = "0.1.4"
 description = "A package for calculating packing density of particles in Cartesian and cylindrical coordinate systems."
 authors = [
     { name = "Freddie Barter", email = "fjbarter@outlook.com" }
