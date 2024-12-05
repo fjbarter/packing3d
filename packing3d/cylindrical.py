@@ -362,3 +362,260 @@ def generate_cylindrical_mesh(radius, base_level, height, r_divisions,
                 ))
 
     return mesh_boundaries
+
+
+def calculate_segregation_intensity(data_1, data_2, cylinder_radius,
+                                    cylinder_base_level, cylinder_height,
+                                    target_num_cells, packing_threshold=0.05):
+    """
+    Calculate the segregation intensity for two particle datasets within a
+    cylindrical mesh.
+
+    This function computes the segregation intensity by dividing the
+    cylindrical region containing particle data into a 3D mesh of cells and
+    evaluating the packing densities of two distinct particle groups.
+
+    Args:
+        data_1 (PyVista DataSet):
+            The particle dataset for the first group (e.g., small particles).
+        data_2 (PyVista DataSet):
+            The particle dataset for the second group (e.g., large particles).
+        cylinder_radius (float):
+            The radius of the cylindrical region to be meshed and analysed.
+        cylinder_base_level (float):
+            The z-coordinate of the base of the cylindrical region.
+        cylinder_height (float):
+            The height of the cylindrical region to be meshed and analysed.
+        target_num_cells (int):
+            The approximate number of desired cells in the cylindrical mesh.
+        packing_threshold (float):
+            The minimum packing density to consider a cell sufficiently
+            occupied.
+
+    Returns:
+        segregation_intensity (float):
+            The segregation intensity, a dimensionless value quantifying
+            the degree of segregation between the two particle groups. Values
+            range from 0 (perfectly mixed) to 1 (completely segregated).
+            Returns NaN if no valid cells are found.
+    
+    """
+
+    # Evaluate dimensional divisions depending on target number of cells
+    z_divisions = int(np.round(target_num_cells**(1/3)))
+    num_cells_slice = target_num_cells/z_divisions
+    theta_divisions = 3
+    r_divisions = int(np.round(np.sqrt(num_cells_slice)))
+
+    # Retrieve cartesian and radii data from binned data
+    x_data_1, y_data_1, z_data_1, radii_1 = retrieve_coordinates(data_1)
+    x_data_2, y_data_2, z_data_2, radii_2 = retrieve_coordinates(data_2)
+
+    # Convert cartesian position data from LIGGGHTS to cylindrical coordinates
+    r_data_1, theta_data_1 = convert_to_cylindrical(x_data_1, y_data_1)
+    r_data_2, theta_data_2 = convert_to_cylindrical(x_data_2, y_data_2)
+
+    # Evaluate total volume occupied by both types, to find the mean fraction
+    # across all cells
+    total_volume_1 = np.sum((4/3) * np.pi * (radii_1**3))
+    total_volume_2 = np.sum((4/3) * np.pi * (radii_2**3))
+    conc_mean = total_volume_1 / (total_volume_1 + total_volume_2)
+
+    # Generate Cartesian mesh
+    mesh_boundaries = generate_cylindrical_mesh(
+        radius=cylinder_radius,
+        base_level=cylinder_base_level,
+        height=cylinder_height,
+        r_divisions=r_divisions,
+        theta_divisions=theta_divisions,
+        z_divisions=z_divisions
+    )
+
+    # Evaluate the total number of meshed cells
+    num_cells = len(mesh_boundaries)
+
+    # Sparse array for packing densities. Includes all cells which could be
+    # removed if they don't meet the packing threshold.
+    concs_1_sparse = np.zeros(num_cells)
+
+    # Compute volume fraction of types for each cell
+    for index, ((i, j, k), boundaries) in enumerate(mesh_boundaries):
+
+        packing_density_1 = compute_packing_cylindrical(
+            boundaries=boundaries,
+            r_data=r_data_1,
+            theta_data=theta_data_1,
+            z_data=z_data_1,
+            radii=radii_1,
+            accurate_cylindrical=False
+        )
+
+        packing_density_2 = compute_packing_cylindrical(
+            boundaries=boundaries,
+            r_data=r_data_2,
+            theta_data=theta_data_2,
+            z_data=z_data_2,
+            radii=radii_2,
+            accurate_cylindrical=False
+        )
+
+        packing_density_total = packing_density_1 + packing_density_2
+
+        # Exclude cells where packing density is too low
+        if packing_density_total > packing_threshold:
+            conc_1 = packing_density_1/packing_density_total
+            concs_1_sparse[index] = conc_1
+        else:
+            concs_1_sparse[index] = np.nan
+
+    # Remove NaNs from sparse array
+    concs_1 = concs_1_sparse[~np.isnan(concs_1_sparse)]
+    num_valid_cells = len(concs_1)
+
+    if num_valid_cells == 0:
+        # Should never happen, just a safeguard
+        I_S = np.nan
+    else:
+        # Calculate Segregation Intensity
+        
+        # Sum of squared deviations:
+        numerator = np.sum((concs_1 - conc_mean) ** 2)
+        # Maximum segregation intensity, assuming random binomnial distribution
+        I_S_max = np.sqrt(conc_mean * (1 - conc_mean))
+        # Final calculation
+        I_S = np.sqrt(numerator / num_valid_cells)/I_S_max
+
+    return I_S
+
+
+def calculate_lacey(data_1, data_2, cylinder_radius,
+                    cylinder_base_level, cylinder_height,
+                    target_num_cells, packing_threshold=0.05):
+    """
+    Calculate Lacey mixing index for two particle datasets within a
+    cylindrical mesh.
+
+    This function computes the Lacey index by dividing the
+    cylindrical region containing particle data into a 3D mesh of cells and
+    evaluating the packing densities of two distinct particle groups.
+
+    Args:
+        data_1 (PyVista DataSet):
+            The particle dataset for the first group (e.g., small particles).
+        data_2 (PyVista DataSet):
+            The particle dataset for the second group (e.g., large particles).
+        cylinder_radius (float):
+            The radius of the cylindrical region to be meshed and analysed.
+        cylinder_base_level (float):
+            The z-coordinate of the base of the cylindrical region.
+        cylinder_height (float):
+            The height of the cylindrical region to be meshed and analysed.
+        target_num_cells (int):
+            The approximate number of desired cells in the cylindrical mesh.
+        packing_threshold (float):
+            The minimum packing density to consider a cell sufficiently
+            occupied.
+
+    Returns:
+        segregation_intensity (float):
+            The segregation intensity, a dimensionless value quantifying
+            the degree of segregation between the two particle groups. Values
+            range from 0 (perfectly mixed) to 1 (completely segregated).
+            Returns NaN if no valid cells are found.
+    
+    """
+
+    # Evaluate dimensional divisions depending on target number of cells
+    z_divisions = int(np.round(target_num_cells**(1/3)))
+    num_cells_slice = target_num_cells/z_divisions
+    theta_divisions = 3
+    r_divisions = int(np.round(np.sqrt(num_cells_slice)))
+
+    radius_inner = cylinder_radius/r_divisions
+    cell_volume = np.pi * radius_inner**2 * cylinder_height / z_divisions
+
+    # Retrieve cartesian and radii data from binned data
+    x_data_1, y_data_1, z_data_1, radii_1 = retrieve_coordinates(data_1)
+    x_data_2, y_data_2, z_data_2, radii_2 = retrieve_coordinates(data_2)
+
+    # Convert cartesian position data from LIGGGHTS to cylindrical coordinates
+    r_data_1, theta_data_1 = convert_to_cylindrical(x_data_1, y_data_1)
+    r_data_2, theta_data_2 = convert_to_cylindrical(x_data_2, y_data_2)
+
+    # Evaluate total volume occupied by both types, to find the mean fraction
+    # across all cells
+    total_volume_1 = np.sum((4/3) * np.pi * (radii_1**3))
+    total_volume_2 = np.sum((4/3) * np.pi * (radii_2**3))
+    conc_mean = total_volume_1 / (total_volume_1 + total_volume_2)
+
+    # Generate Cartesian mesh
+    mesh_boundaries = generate_cylindrical_mesh(
+        radius=cylinder_radius,
+        base_level=cylinder_base_level,
+        height=cylinder_height,
+        r_divisions=r_divisions,
+        theta_divisions=theta_divisions,
+        z_divisions=z_divisions
+    )
+
+    # Evaluate the total number of meshed cells
+    num_cells = len(mesh_boundaries)
+
+    # Sparse array for packing densities. Includes all cells which could be
+    # removed if they don't meet the packing threshold.
+    concs_1_sparse = np.zeros(num_cells)
+
+    # Compute concentration of each type in each cell
+    for index, ((i, j, k), boundaries) in enumerate(mesh_boundaries):
+
+        packing_density_1 = compute_packing_cylindrical(
+            boundaries=boundaries,
+            r_data=r_data_1,
+            theta_data=theta_data_1,
+            z_data=z_data_1,
+            radii=radii_1,
+            accurate_cylindrical=False
+        )
+
+        packing_density_2 = compute_packing_cylindrical(
+            boundaries=boundaries,
+            r_data=r_data_2,
+            theta_data=theta_data_2,
+            z_data=z_data_2,
+            radii=radii_2,
+            accurate_cylindrical=False
+        )
+
+        packing_density_total = packing_density_1 + packing_density_2
+
+        # Exclude cells where packing density is too low
+        if packing_density_total > packing_threshold:
+            conc_1 = packing_density_1/packing_density_total
+            concs_1_sparse[index] = conc_1
+        else:
+            concs_1_sparse[index] = np.nan
+
+    # Remove NaNs from sparse array
+    concs_1 = concs_1_sparse[~np.isnan(concs_1_sparse)]
+    num_valid_cells = len(concs_1)
+
+    if num_valid_cells == 0 or num_valid_cells == 1:
+        # Should never happen, just a safeguard
+        # If only one valid cell, no variance
+        M = np.nan
+    else:
+        # Calculate Lacey Index
+        
+        # Calculate actual variance of type 1
+        S_actual = np.sum((concs_1 - conc_mean)**2)/num_valid_cells
+
+        # Calculate random variance, assuming binomial distribution of types
+        S_random = conc_mean * (1 - conc_mean)/num_valid_cells
+
+        # Calculate maximum variance (completely segregated)
+        S_maximum = conc_mean * (1 - conc_mean) 
+
+        # Final calculation step
+        M = (S_maximum - S_actual) / (S_maximum - S_random)
+
+    return M

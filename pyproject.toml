@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "packing3d"
-version = "0.1.4"
+version = "0.1.5"
 description = "A package for calculating packing density of particles in Cartesian and cylindrical coordinate systems."
 authors = [
     { name = "Freddie Barter", email = "fjbarter@outlook.com" }
@@ -12,7 +12,7 @@ authors = [
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["packing density", "cartesian", "cylindrical", "geometry", "particles"]
+keywords = ["packing density", "cartesian", "cylindrical", "geometry", "particles", "segregation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",

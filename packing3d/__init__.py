@@ -1,6 +1,6 @@
 # __init__.py
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__ = "Freddie Barter"
 __email__ = "fjbarter@outlook.com"
 
@@ -31,9 +31,11 @@ from .cartesian import (
 from .cylindrical import (
     compute_packing_cylindrical,
     generate_cylindrical_mesh,
+    calculate_segregation_intensity,
+    calculate_lacey
 )
 
-# Geometry function (limited public access)
+# Geometry function
 from .geometry import convert_to_cylindrical
 
 # IO functions
@@ -51,4 +53,6 @@ __all__ = [
     "convert_to_cylindrical",
     "read_vtk_file",
     "retrieve_coordinates",
+    "calculate_segregation_intensity",
+    "calculate_lacey"
 ]
