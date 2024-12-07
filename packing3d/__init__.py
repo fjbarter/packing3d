@@ -21,6 +21,9 @@ Modules:
 
 # Importing key functions for the public API
 
+# Mesh class
+from .mesh import Mesh
+
 # Cartesian functions
 from .cartesian import (
     compute_packing_cartesian,
@@ -46,6 +49,7 @@ from .io import (
 
 # Public API
 __all__ = [
+    "Mesh",
     "compute_packing_cartesian",
     "generate_cartesian_mesh",
     "compute_packing_cylindrical",

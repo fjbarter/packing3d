@@ -20,9 +20,12 @@ from .utils import (compute_automatic_boundaries,
                     calculate_overlaps,
                     calculate_active_overlap_values,
                     is_inside_boundaries,
-                    is_outside_boundaries)
+                    is_outside_boundaries,
+                    convert_boundaries_dictionary)
 
 from .cartesian import calculate_particle_volume
+
+from .mesh import Mesh
 
 
 def compute_packing_cylindrical(file=None, boundaries=None,
@@ -75,7 +78,20 @@ def compute_packing_cylindrical(file=None, boundaries=None,
                                                   theta_data=theta_data,
                                                   z_data=z_data,
                                                   system="cylindrical")
+    else:
+        boundaries = convert_boundaries_dictionary(boundaries,
+                                                   system="cylindrical")
 
+
+    r_min, r_max, theta_min, theta_max, z_min, z_max = boundaries
+
+    if r_min == 0 and abs(theta_max - theta_min - 2*np.pi) < 1e-8:
+        raise ValueError("""r_min provided as 0 with a full circular theta
+                         range. To correctly define a full cylindrical cell
+                         use r_min < 0.""")
+
+    full_cylindrical_cell = r_min < 0
+    
     # Calculate angular overlap factor
     factor = calculate_angular_overlap_factor(r_data, radii)
 
@@ -118,8 +134,6 @@ def compute_packing_cylindrical(file=None, boundaries=None,
                                          radii=radii,
                                          factor=factor,
                                          system="cylindrical")
-
-    full_cylindrical_cell = boundaries["r_min"] < 0
 
     if full_cylindrical_cell and accurate_cylindrical is None:
         accurate_cylindrical = True
@@ -279,89 +293,110 @@ def generate_cylindrical_mesh(radius, base_level, height, r_divisions,
                                           = 3 (default)
 
     Returns:
-        list: A list of tuples, each containing (indices, boundaries).
-              Indices are (i, j, k), and boundaries are dictionaries.
+        mesh_boundaries (np.ndarray): An array containing boundaries
     """
 
-    # Calculate radius_inner for the central cylindrical cell
-    if constant_volume:
-        if theta_divisions is not None and theta_divisions != 3:
-            raise ValueError("""theta_divisions must equal 3 for constant
-                             volume cells and constant radial divisions.
-                             (Dynamic radial divisions not yet supported)""")
-        else:
-            theta_divisions = 3
-            radius_inner = radius / r_divisions
-    else:
-        radius_inner = radius / r_divisions
+    print("WARNING: Function generate_cylindrical_mesh is now deprecated. Use Mesh class instead (see documentation).")
 
-    # Radial boundaries
-    radial_bounds = np.linspace(radius_inner, radius, r_divisions)
+    # DEPRECATED FUNCTIONALITY # NOW USE MESH CLASS INSTEAD
 
-    # Vertical boundaries
-    z_bounds = np.linspace(base_level, base_level + height, z_divisions + 1)
+    # # Calculate radius_inner for the central cylindrical cell
+    # if constant_volume:
+    #     if theta_divisions is not None and theta_divisions != 3:
+    #         raise ValueError("""theta_divisions must equal 3 for constant
+    #                          volume cells and constant radial divisions.
+    #                          (Dynamic radial divisions not yet supported)""")
+    #     else:
+    #         theta_divisions = 3
+    #         radius_inner = radius / r_divisions
+    # else:
+    #     radius_inner = radius / r_divisions
 
-    # Target volume for cells in first radial layer
-    radius_factor = radial_bounds[1]**2 - radius_inner**2
-    cell_height = height / z_divisions
-    target_volume = np.pi * radius_factor * cell_height / theta_divisions
+    # # Radial boundaries
+    # radial_bounds = np.linspace(radius_inner, radius, r_divisions)
 
-    # Store all mesh boundaries
-    mesh_boundaries = []
+    # # Vertical boundaries
+    # z_bounds = np.linspace(base_level, base_level + height, z_divisions + 1)
 
-    # Loop through z-layers first
-    for k in range(len(z_bounds) - 1):
-        z_min, z_max = z_bounds[k], z_bounds[k + 1]
+    # # Target volume for cells in first radial layer
+    # radius_factor = radial_bounds[1]**2 - radius_inner**2
+    # cell_height = height / z_divisions
+    # target_volume = np.pi * radius_factor * cell_height / theta_divisions
 
-        # Add the special inner cell for this z-layer
-        mesh_boundaries.append((
-            (0, 0, k),  # Special inner cell indices for this layer
-            # This configuration specifies a full cylindrical cell
-            {
-                "r_min": -radius_inner,
-                "r_max": radius_inner,
-                "theta_min": 0,
-                "theta_max": 2 * np.pi,
-                "z_min": z_min,
-                "z_max": z_max,
-            }
-        ))
+    # # Store all mesh boundaries
+    # mesh_boundaries = []
 
-        # Loop through radial layers outside the special cell
-        for i in range(len(radial_bounds) - 1):
-            r_min, r_max = radial_bounds[i], radial_bounds[i + 1]
-            layer_volume = (np.pi * (r_max**2 - r_min**2) * (z_max - z_min))
+    # # Loop through z-layers first
+    # for k in range(len(z_bounds) - 1):
+    #     z_min, z_max = z_bounds[k], z_bounds[k + 1]
 
-            # Calculate required angular divisions for this layer to maintain
-            # constant volume
-            if theta_divisions == 1:
-                layer_theta_divisions = 1
-            else:
-                layer_theta_divisions = max(1, int(round(
-                    layer_volume/target_volume)))
+    #     # Add the special inner cell for this z-layer
+    #     mesh_boundaries.append((
+    #         (0, 0, k),  # Special inner cell indices for this layer
+    #         # This configuration specifies a full cylindrical cell
+    #         {
+    #             "r_min": -radius_inner,
+    #             "r_max": radius_inner,
+    #             "theta_min": 0,
+    #             "theta_max": 2 * np.pi,
+    #             "z_min": z_min,
+    #             "z_max": z_max,
+    #         }
+    #     ))
 
-            # Angular boundaries for this layer
-            theta_bounds = np.linspace(0, 2 * np.pi, layer_theta_divisions + 1)
+    #     # Loop through radial layers outside the special cell
+    #     for i in range(len(radial_bounds) - 1):
+    #         r_min, r_max = radial_bounds[i], radial_bounds[i + 1]
+    #         layer_volume = (np.pi * (r_max**2 - r_min**2) * (z_max - z_min))
 
-            # Loop through angular divisions
-            for j in range(len(theta_bounds) - 1):
-                theta_min, theta_max = theta_bounds[j], theta_bounds[j + 1]
+    #         # Calculate required angular divisions for this layer to maintain
+    #         # constant volume
+    #         if theta_divisions == 1:
+    #             layer_theta_divisions = 1
+    #         else:
+    #             layer_theta_divisions = max(1, int(round(
+    #                 layer_volume/target_volume)))
 
-                # Append regular cell boundaries and indices
-                mesh_boundaries.append((
-                    # Adjust indices since the inner cell is (0, 0, k)
-                    (i + 1, j, k),
-                    {
-                        "r_min": r_min,
-                        "r_max": r_max,
-                        "theta_min": theta_min,
-                        "theta_max": theta_max,
-                        "z_min": z_min,
-                        "z_max": z_max,
-                    }
-                ))
+    #         # Angular boundaries for this layer
+    #         theta_bounds = np.linspace(0, 2 * np.pi, layer_theta_divisions + 1)
 
-    return mesh_boundaries
+    #         # Loop through angular divisions
+    #         for j in range(len(theta_bounds) - 1):
+    #             theta_min, theta_max = theta_bounds[j], theta_bounds[j + 1]
+
+    #             # Append regular cell boundaries and indices
+    #             mesh_boundaries.append((
+    #                 # Adjust indices since the inner cell is (0, 0, k)
+    #                 (i + 1, j, k),
+    #                 {
+    #                     "r_min": r_min,
+    #                     "r_max": r_max,
+    #                     "theta_min": theta_min,
+    #                     "theta_max": theta_max,
+    #                     "z_min": z_min,
+    #                     "z_max": z_max,
+    #                 }
+    #             ))
+
+    # return mesh_boundaries
+
+    divisions = {"r": r_divisions,
+                 "theta": theta_divisions,
+                 "z": z_divisions}
+
+    params = {"cylinder_radius": radius,
+              "cylinder_base_level": base_level,
+              "cylinder_height": height,
+              "constant_volume": constant_volume}
+
+    # Generate cylindrical mesh
+    cylindrical_mesh = Mesh(system="cylindrical",
+                            divisions=divisions,
+                            **params)
+    
+    mesh_boundaries = cylindrical_mesh.cell_boundaries
+
+    return list(enumerate(mesh_boundaries))
 
 
 def calculate_segregation_intensity(data_1, data_2, cylinder_radius,
@@ -421,25 +456,43 @@ def calculate_segregation_intensity(data_1, data_2, cylinder_radius,
     total_volume_2 = np.sum((4/3) * np.pi * (radii_2**3))
     conc_mean = total_volume_1 / (total_volume_1 + total_volume_2)
 
+    divisions = {"r": r_divisions,
+                 "theta": theta_divisions,
+                 "z": z_divisions}
+
+    params = {"cylinder_radius": cylinder_radius,
+              "cylinder_base_level": cylinder_base_level,
+              "cylinder_height": cylinder_height}
+
     # Generate Cartesian mesh
-    mesh_boundaries = generate_cylindrical_mesh(
-        radius=cylinder_radius,
-        base_level=cylinder_base_level,
-        height=cylinder_height,
-        r_divisions=r_divisions,
-        theta_divisions=theta_divisions,
-        z_divisions=z_divisions
-    )
+    cylindrical_mesh = Mesh(system="cylindrical",
+                            divisions=divisions,
+                            **params)
+    
+    mesh_boundaries = cylindrical_mesh.cell_boundaries
+
+    # # Generate Cartesian mesh
+    # mesh_boundaries_old = generate_cylindrical_mesh(
+    #     radius=cylinder_radius,
+    #     base_level=cylinder_base_level,
+    #     height=cylinder_height,
+    #     r_divisions=r_divisions,
+    #     theta_divisions=theta_divisions,
+    #     z_divisions=z_divisions
+    # )
+
+    # print(mesh_boundaries)
+    # print(mesh_boundaries_old)
 
     # Evaluate the total number of meshed cells
-    num_cells = len(mesh_boundaries)
+    num_cells = cylindrical_mesh.total_cells
 
     # Sparse array for packing densities. Includes all cells which could be
     # removed if they don't meet the packing threshold.
     concs_1_sparse = np.zeros(num_cells)
 
     # Compute volume fraction of types for each cell
-    for index, ((i, j, k), boundaries) in enumerate(mesh_boundaries):
+    for index, boundaries in enumerate(mesh_boundaries):
 
         packing_density_1 = compute_packing_cylindrical(
             boundaries=boundaries,
@@ -548,25 +601,30 @@ def calculate_lacey(data_1, data_2, cylinder_radius,
     total_volume_2 = np.sum((4/3) * np.pi * (radii_2**3))
     conc_mean = total_volume_1 / (total_volume_1 + total_volume_2)
 
+    divisions = {"r": r_divisions,
+                 "theta": theta_divisions,
+                 "z": z_divisions}
+
+    params = {"cylinder_radius": cylinder_radius,
+              "cylinder_base_level": cylinder_base_level,
+              "cylinder_height": cylinder_height}
+
     # Generate Cartesian mesh
-    mesh_boundaries = generate_cylindrical_mesh(
-        radius=cylinder_radius,
-        base_level=cylinder_base_level,
-        height=cylinder_height,
-        r_divisions=r_divisions,
-        theta_divisions=theta_divisions,
-        z_divisions=z_divisions
-    )
+    cylindrical_mesh = Mesh(system="cylindrical",
+                            divisions=divisions,
+                            **params)
+    
+    mesh_boundaries = cylindrical_mesh.cell_boundaries
 
     # Evaluate the total number of meshed cells
-    num_cells = len(mesh_boundaries)
+    num_cells = cylindrical_mesh.total_cells
 
     # Sparse array for packing densities. Includes all cells which could be
     # removed if they don't meet the packing threshold.
     concs_1_sparse = np.zeros(num_cells)
 
     # Compute concentration of each type in each cell
-    for index, ((i, j, k), boundaries) in enumerate(mesh_boundaries):
+    for index, boundaries in enumerate(mesh_boundaries):
 
         packing_density_1 = compute_packing_cylindrical(
             boundaries=boundaries,

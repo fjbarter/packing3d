@@ -570,10 +570,10 @@ def compute_cell_volume(boundaries, system="cartesian", cylinder_radius=None):
     """
 
     if system == "cartesian":
+
+
         # Cartesian cell type specified
-        x_min, x_max = boundaries['x_min'], boundaries['x_max']
-        y_min, y_max = boundaries['y_min'], boundaries['y_max']
-        z_min, z_max = boundaries['z_min'], boundaries['z_max']
+        x_min, x_max, y_min, y_max, z_min, z_max = boundaries
 
         if cylinder_radius is None:
             # Regular Cartesian volume if no cylinder is defined
@@ -584,9 +584,7 @@ def compute_cell_volume(boundaries, system="cartesian", cylinder_radius=None):
 
     elif system == "cylindrical":
         # Cylindrical cell type specified
-        r_min, r_max = boundaries['r_min'], boundaries['r_max']
-        theta_min, theta_max = boundaries['theta_min'], boundaries['theta_max']
-        z_min, z_max = boundaries['z_min'], boundaries['z_max']
+        r_min, r_max, theta_min, theta_max, z_min, z_max = boundaries
 
         delta_theta = angular_difference(theta_min, theta_max)
 

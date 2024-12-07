@@ -33,14 +33,14 @@ def compute_automatic_boundaries(x_data=None, y_data=None, z_data=None,
             raise ValueError("x_data, y_data, and z_data are required for Cartesian boundaries.")
         
         x_range, y_range, z_range = np.ptp(x_data), np.ptp(y_data), np.ptp(z_data)
-        boundaries = {
-            "x_min": min(x_data) + padding_factor * x_range,
-            "x_max": max(x_data) - padding_factor * x_range,
-            "y_min": min(y_data) + padding_factor * y_range,
-            "y_max": max(y_data) - padding_factor * y_range,
-            "z_min": min(z_data) + padding_factor * z_range,
-            "z_max": max(z_data) - padding_factor * z_range,
-        }
+        boundaries = [
+            min(x_data) + padding_factor * x_range,
+            max(x_data) - padding_factor * x_range,
+            min(y_data) + padding_factor * y_range,
+            max(y_data) - padding_factor * y_range,
+            min(z_data) + padding_factor * z_range,
+            max(z_data) - padding_factor * z_range,
+                     ]
         return boundaries
 
     elif system == "cylindrical":
@@ -48,14 +48,14 @@ def compute_automatic_boundaries(x_data=None, y_data=None, z_data=None,
             raise ValueError("r_data and z_data are required for Cylindrical boundaries.")
         
         z_range = np.ptp(z_data)
-        boundaries = {
-            "r_max": max(r_data) * (1 - padding_factor),
-            "r_min": -max(r_data) * (1 - padding_factor),
-            "theta_min": -np.pi,
-            "theta_max": 3 * np.pi,
-            "z_min": min(z_data) + padding_factor * z_range,
-            "z_max": max(z_data) - padding_factor * z_range,
-        }
+        boundaries = [
+            max(r_data) * (1 - padding_factor),
+            -max(r_data) * (1 - padding_factor),
+            -np.pi,
+            3 * np.pi,
+            min(z_data) + padding_factor * z_range,
+            max(z_data) - padding_factor * z_range,
+                     ]
         return boundaries
 
     else:
@@ -88,42 +88,46 @@ def is_inside_boundaries(x_data=None, y_data=None, z_data=None,
         if x_data is None or y_data is None or z_data is None:
             raise ValueError("x_data, y_data, and z_data are required for Cartesian boundaries.")
         
+        x_min, x_max, y_min, y_max, z_min, z_max = boundaries
+
         return (
-            (x_data >= boundaries["x_min"] + radii) &
-            (x_data <= boundaries["x_max"] - radii) &
-            (y_data >= boundaries["y_min"] + radii) &
-            (y_data <= boundaries["y_max"] - radii) &
-            (z_data >= boundaries["z_min"] + radii) &
-            (z_data <= boundaries["z_max"] - radii)
+            (x_data >= x_min + radii) &
+            (x_data <= x_max - radii) &
+            (y_data >= y_min + radii) &
+            (y_data <= y_max - radii) &
+            (z_data >= z_min + radii) &
+            (z_data <= z_max - radii)
         )
 
     elif system == "cylindrical":
         if r_data is None or z_data is None or theta_data is None:
             raise ValueError("r_data, theta_data, and z_data are required for Cylindrical boundaries.")
 
+        r_min, r_max, theta_min, theta_max, z_min, z_max = boundaries
+
         # Full cylinder
-        if boundaries["r_min"] < 0:
+        if r_min < 0:
             return (
-                (r_data <= boundaries["r_max"] - radii) &
-                (z_data >= boundaries["z_min"] + radii) &
-                (z_data <= boundaries["z_max"] - radii)
+                (r_data <= r_max - radii) &
+                (z_data >= z_min + radii) &
+                (z_data <= z_max - radii)
             )
 
         # Full ring
-        if boundaries["theta_min"] == 0 and boundaries["theta_max"] == 2 * np.pi:
+        if theta_min == 0 and theta_max == 2 * np.pi:
             return (
-                (r_data >= boundaries["r_min"] + radii) &
-                (r_data <= boundaries["r_max"] - radii) &
-                (z_data >= boundaries["z_min"] + radii) &
-                (z_data <= boundaries["z_max"] - radii)
+                (r_data >= r_min + radii) &
+                (r_data <= r_max - radii) &
+                (z_data >= z_min + radii) &
+                (z_data <= z_max - radii)
             )
 
         # Theta range handling
         if factor is None:
             raise ValueError("factor is required for Cylindrical boundaries with angular constraints.")
 
-        theta_min = (boundaries["theta_min"] + factor) % (2 * np.pi)
-        theta_max = (boundaries["theta_max"] - factor) % (2 * np.pi)
+        theta_min = (theta_min + factor) % (2 * np.pi)
+        theta_max = (theta_max - factor) % (2 * np.pi)
 
         # Theta condition for periodic ranges
         standard_range = (theta_min <= theta_max)
@@ -134,11 +138,11 @@ def is_inside_boundaries(x_data=None, y_data=None, z_data=None,
         )
 
         return (
-            (r_data >= boundaries["r_min"] + radii) &
-            (r_data <= boundaries["r_max"] - radii) &
+            (r_data >= r_min + radii) &
+            (r_data <= r_max - radii) &
             theta_inside &
-            (z_data >= boundaries["z_min"] + radii) &
-            (z_data <= boundaries["z_max"] - radii)
+            (z_data >= z_min + radii) &
+            (z_data <= z_max - radii)
         )
 
     else:
@@ -171,42 +175,46 @@ def is_outside_boundaries(x_data=None, y_data=None, z_data=None,
         if x_data is None or y_data is None or z_data is None:
             raise ValueError("x_data, y_data, and z_data are required for Cartesian boundaries.")
         
+        x_min, x_max, y_min, y_max, z_min, z_max = boundaries
+        
         return (
-            (x_data <= boundaries["x_min"] - radii) |
-            (x_data >= boundaries["x_max"] + radii) |
-            (y_data <= boundaries["y_min"] - radii) |
-            (y_data >= boundaries["y_max"] + radii) |
-            (z_data <= boundaries["z_min"] - radii) |
-            (z_data >= boundaries["z_max"] + radii)
+            (x_data <= x_min - radii) |
+            (x_data >= x_max + radii) |
+            (y_data <= y_min - radii) |
+            (y_data >= y_max + radii) |
+            (z_data <= z_min - radii) |
+            (z_data >= z_max + radii)
         )
 
     elif system == "cylindrical":
         if r_data is None or z_data is None or theta_data is None:
             raise ValueError("r_data, theta_data, and z_data are required for Cylindrical boundaries.")
 
+        r_min, r_max, theta_min, theta_max, z_min, z_max = boundaries
+
         # Full cylinder
-        if boundaries["r_min"] < 0:
+        if r_min < 0:
             return (
-                (r_data >= boundaries["r_max"] + radii) |
-                (z_data <= boundaries["z_min"] - radii) |
-                (z_data >= boundaries["z_max"] + radii)
+                (r_data >= r_max + radii) |
+                (z_data <= z_min - radii) |
+                (z_data >= z_max + radii)
             )
 
         # Full ring
-        if boundaries["theta_min"] == 0 and boundaries["theta_max"] == 2 * np.pi:
+        if theta_min == 0 and theta_max == 2 * np.pi:
             return (
-                (r_data <= boundaries["r_min"] - radii) |
-                (r_data >= boundaries["r_max"] + radii) |
-                (z_data <= boundaries["z_min"] - radii) |
-                (z_data >= boundaries["z_max"] + radii)
+                (r_data <= r_min - radii) |
+                (r_data >= r_max + radii) |
+                (z_data <= z_min - radii) |
+                (z_data >= z_max + radii)
             )
 
         # Theta range handling
         if factor is None:
             raise ValueError("factor is required for Cylindrical boundaries with angular constraints.")
 
-        theta_min = (boundaries["theta_min"] - factor) % (2 * np.pi)
-        theta_max = (boundaries["theta_max"] + factor) % (2 * np.pi)
+        theta_min = (theta_min - factor) % (2 * np.pi)
+        theta_max = (theta_max + factor) % (2 * np.pi)
 
         # Theta condition for periodic ranges (outside check)
         standard_range = (theta_min <= theta_max)
@@ -217,11 +225,11 @@ def is_outside_boundaries(x_data=None, y_data=None, z_data=None,
         )
 
         return (
-            (r_data <= boundaries["r_min"] - radii) |
-            (r_data >= boundaries["r_max"] + radii) |
+            (r_data <= r_min - radii) |
+            (r_data >= r_max + radii) |
             theta_outside |
-            (z_data <= boundaries["z_min"] - radii) |
-            (z_data >= boundaries["z_max"] + radii)
+            (z_data <= z_min - radii) |
+            (z_data >= z_max + radii)
         )
 
     else:
@@ -251,19 +259,21 @@ def calculate_overlaps(x_data=None, y_data=None, z_data=None,
         if x_data is None or y_data is None or z_data is None:
             raise ValueError("x_data, y_data, and z_data are required for Cartesian overlaps.")
         
+        x_min, x_max, y_min, y_max, z_min, z_max = boundaries
+
         overlaps = {
-            "x_min": (x_data > boundaries["x_min"] - radii) & 
-                     (x_data < boundaries["x_min"] + radii),
-            "x_max": (x_data > boundaries["x_max"] - radii) & 
-                     (x_data < boundaries["x_max"] + radii),
-            "y_min": (y_data > boundaries["y_min"] - radii) & 
-                     (y_data < boundaries["y_min"] + radii),
-            "y_max": (y_data > boundaries["y_max"] - radii) & 
-                     (y_data < boundaries["y_max"] + radii),
-            "z_min": (z_data > boundaries["z_min"] - radii) & 
-                     (z_data < boundaries["z_min"] + radii),
-            "z_max": (z_data > boundaries["z_max"] - radii) & 
-                     (z_data < boundaries["z_max"] + radii),
+            "x_min": (x_data > x_min - radii) & 
+                     (x_data < x_min + radii),
+            "x_max": (x_data > x_max - radii) & 
+                     (x_data < x_max + radii),
+            "y_min": (y_data > y_min - radii) & 
+                     (y_data < y_min + radii),
+            "y_max": (y_data > y_max - radii) & 
+                     (y_data < y_max + radii),
+            "z_min": (z_data > z_min - radii) & 
+                     (z_data < z_min + radii),
+            "z_max": (z_data > z_max - radii) & 
+                     (z_data < z_max + radii),
         }
         return overlaps
 
@@ -271,6 +281,8 @@ def calculate_overlaps(x_data=None, y_data=None, z_data=None,
         if r_data is None or theta_data is None or z_data is None:
             raise ValueError("r_data, theta_data, and z_data are required for Cylindrical overlaps.")
         
+        r_min, r_max, theta_min, theta_max, z_min, z_max = boundaries
+
         def theta_overlap(theta, theta_min, theta_max):
             """
             Check if theta values overlap with a periodic range [theta_min, theta_max).
@@ -292,33 +304,33 @@ def calculate_overlaps(x_data=None, y_data=None, z_data=None,
             return standard_mask | wrapped_mask
 
         # Handle periodicity in theta
-        theta_min_wrapped = (boundaries["theta_min"] - factor) % (2 * np.pi)
-        theta_max_wrapped = (boundaries["theta_max"] + factor) % (2 * np.pi)
+        theta_min_wrapped = (theta_min - factor) % (2 * np.pi)
+        theta_max_wrapped = (theta_max + factor) % (2 * np.pi)
 
-        if boundaries["r_min"] < 0:  # Full cylindrical region -> no theta overlap
+        if r_min < 0:  # Full cylindrical region -> no theta overlap
             return {
                 "r_min": False,
-                "r_max": (r_data > boundaries["r_max"] - radii) & 
-                         (r_data < boundaries["r_max"] + radii),
+                "r_max": (r_data > r_max - radii) & 
+                         (r_data < r_max + radii),
                 "theta_min": False,
                 "theta_max": False,
-                "z_min": (z_data > boundaries["z_min"] - radii) & 
-                         (z_data < boundaries["z_min"] + radii),
-                "z_max": (z_data > boundaries["z_max"] - radii) & 
-                         (z_data < boundaries["z_max"] + radii),
+                "z_min": (z_data > z_min - radii) & 
+                         (z_data < z_min + radii),
+                "z_max": (z_data > z_max - radii) & 
+                         (z_data < z_max + radii),
             }
 
         overlaps = {
-            "r_min": (r_data > boundaries["r_min"] - radii) & 
-                     (r_data < boundaries["r_min"] + radii),
-            "r_max": (r_data > boundaries["r_max"] - radii) & 
-                     (r_data < boundaries["r_max"] + radii),
-            "theta_min": theta_overlap(theta_data, theta_min_wrapped, boundaries["theta_min"] + factor),
-            "theta_max": theta_overlap(theta_data, boundaries["theta_max"] - factor, theta_max_wrapped),
-            "z_min": (z_data > boundaries["z_min"] - radii) & 
-                     (z_data < boundaries["z_min"] + radii),
-            "z_max": (z_data > boundaries["z_max"] - radii) & 
-                     (z_data < boundaries["z_max"] + radii),
+            "r_min": (r_data > r_min - radii) & 
+                     (r_data < r_min + radii),
+            "r_max": (r_data > r_max - radii) & 
+                     (r_data < r_max + radii),
+            "theta_min": theta_overlap(theta_data, theta_min_wrapped, theta_min + factor),
+            "theta_max": theta_overlap(theta_data, theta_max - factor, theta_max_wrapped),
+            "z_min": (z_data > z_min - radii) & 
+                     (z_data < z_min + radii),
+            "z_max": (z_data > z_max - radii) & 
+                     (z_data < z_max + radii),
         }
         return overlaps
 
@@ -350,35 +362,39 @@ def calculate_active_overlap_values(total_particles, x_data=None, y_data=None, z
     if system == "cartesian":
         if x_data is None or y_data is None or z_data is None:
             raise ValueError("x_data, y_data, and z_data are required for Cartesian overlaps.")
-        
+
+        x_min, x_max, y_min, y_max, z_min, z_max = boundaries
+
         # Cartesian overlaps
         active_overlap_values[:, 0] = np.where(
-            overlaps["x_min"], boundaries["x_min"] - x_data, np.nan)
+            overlaps["x_min"], x_min - x_data, np.nan)
         active_overlap_values[:, 1] = np.where(
-            overlaps["x_max"], x_data - boundaries["x_max"], np.nan)
+            overlaps["x_max"], x_data - x_max, np.nan)
         active_overlap_values[:, 2] = np.where(
-            overlaps["y_min"], boundaries["y_min"] - y_data, np.nan)
+            overlaps["y_min"], y_min - y_data, np.nan)
         active_overlap_values[:, 3] = np.where(
-            overlaps["y_max"], y_data - boundaries["y_max"], np.nan)
+            overlaps["y_max"], y_data - y_max, np.nan)
         active_overlap_values[:, 4] = np.where(
-            overlaps["z_min"], boundaries["z_min"] - z_data, np.nan)
+            overlaps["z_min"], z_min - z_data, np.nan)
         active_overlap_values[:, 5] = np.where(
-            overlaps["z_max"], z_data - boundaries["z_max"], np.nan)
+            overlaps["z_max"], z_data - z_max, np.nan)
 
     elif system == "cylindrical":
         if r_data is None or theta_data is None or z_data is None:
             raise ValueError("r_data, theta_data, and z_data are required for Cylindrical overlaps.")
-        
+
+        r_min, r_max, theta_min, theta_max, z_min, z_max = boundaries
+
         # Cylindrical overlaps
         # Radial overlaps
         active_overlap_values[:, 0] = np.where(
-            overlaps["r_min"], boundaries["r_min"] - r_data, np.nan)
+            overlaps["r_min"], r_min - r_data, np.nan)
         active_overlap_values[:, 1] = np.where(
-            overlaps["r_max"], r_data - boundaries["r_max"], np.nan)
+            overlaps["r_max"], r_data - r_max, np.nan)
 
         # Angular overlaps
-        theta_min_differences = angular_difference(theta_data, boundaries["theta_min"])
-        theta_max_differences = angular_difference(theta_data, boundaries["theta_max"])
+        theta_min_differences = angular_difference(theta_data, theta_min)
+        theta_max_differences = angular_difference(theta_data, theta_max)
 
         # Convert angular differences to distances
         theta_min_distances = r_data * np.sin(theta_min_differences)
@@ -389,9 +405,9 @@ def calculate_active_overlap_values(total_particles, x_data=None, y_data=None, z
 
         # z overlaps
         active_overlap_values[:, 4] = np.where(
-            overlaps["z_min"], boundaries["z_min"] - z_data, np.nan)
+            overlaps["z_min"], z_min - z_data, np.nan)
         active_overlap_values[:, 5] = np.where(
-            overlaps["z_max"], z_data - boundaries["z_max"], np.nan)
+            overlaps["z_max"], z_data - z_max, np.nan)
 
     else:
         raise ValueError("Invalid system specified. Choose 'cartesian' or 'cylindrical'.")
@@ -399,3 +415,66 @@ def calculate_active_overlap_values(total_particles, x_data=None, y_data=None, z
     return active_overlap_values
 
 
+def convert_boundaries_dictionary(boundaries, system):
+    """
+    Convert a user-provided boundaries dictionary or validate a numpy array.
+
+    Args:
+        boundaries (dict or np.ndarray): 
+            - If dict: Specifies boundaries with keys like "x_min", "x_max", etc.
+            - If np.ndarray: A 1D array of 6 elements specifying boundaries.
+        system (str): The coordinate system, either "cartesian" or "cylindrical".
+
+    Returns:
+        np.ndarray: A validated numpy array of boundaries.
+
+    Raises:
+        ValueError: If required keys are missing, values are invalid, or the
+                    array format is incorrect.
+    """
+
+    if isinstance(boundaries, dict):
+        # Handle dictionary input
+        if system == "cartesian":
+            required_keys = ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max"]
+        elif system == "cylindrical":
+            required_keys = ["r_min", "r_max", "theta_min", "theta_max", "z_min", "z_max"]
+        else:
+            raise ValueError("Unsupported system. Choose 'cartesian' or 'cylindrical'.")
+
+        # Check for missing keys
+        missing_keys = [key for key in required_keys if key not in boundaries]
+        if missing_keys:
+            raise ValueError(f"Missing required boundary keys: {missing_keys}")
+
+        # Validate values
+        for key in required_keys:
+            if not isinstance(boundaries[key], (int, float)):
+                raise ValueError(f"Boundary value for '{key}' must be a number. Got: {boundaries[key]}")
+
+        # Ensure min < max for each dimension
+        for i in range(0, len(required_keys), 2):
+            min_key, max_key = required_keys[i], required_keys[i + 1]
+            if boundaries[min_key] >= boundaries[max_key]:
+                raise ValueError(f"Invalid boundaries: '{min_key}' must be less than '{max_key}'.")
+
+        # Convert to numpy array
+        boundary_array = np.array([boundaries[key] for key in required_keys], dtype=float)
+        return boundary_array
+
+    elif isinstance(boundaries, np.ndarray):
+        # Handle numpy array input
+        if boundaries.shape != (6,):
+            raise ValueError(f"Expected a numpy array of shape (6,), but got {boundaries.shape}.")
+
+        # Ensure min < max for each dimension
+        for i in range(0, len(boundaries), 2):
+            if boundaries[i] >= boundaries[i + 1]:
+                raise ValueError(f"Invalid boundaries: boundaries[{i}] ({boundaries[i]}) "
+                                 f"must be less than boundaries[{i+1}] ({boundaries[i+1]}).")
+
+        # Return the validated array
+        return boundaries
+
+    else:
+        raise ValueError("Boundaries must be a dictionary or a numpy array.")

@@ -6,20 +6,19 @@ import numpy as np
 from .io import (read_vtk_file,
                  retrieve_coordinates)
 
-from .geometry import (convert_to_cylindrical,
-                       calculate_angular_overlap_factor,
-                       compute_cell_volume,
+from .geometry import (compute_cell_volume,
                        single_cap_intersection,
                        double_cap_intersection,
-                       triple_cap_intersection,
-                       sphere_cylinder_intersection,
-                       sphere_cylinder_plane_intersection)
+                       triple_cap_intersection)
 
 from .utils import (compute_automatic_boundaries,
                     calculate_overlaps,
                     calculate_active_overlap_values,
                     is_inside_boundaries,
-                    is_outside_boundaries)
+                    is_outside_boundaries,
+                    convert_boundaries_dictionary)
+
+from .mesh import Mesh
 
 def compute_packing_cartesian(file=None, boundaries=None,
                               x_data=None, y_data=None, z_data=None, radii=None,
@@ -63,6 +62,9 @@ def compute_packing_cartesian(file=None, boundaries=None,
                                                   z_data=z_data,
                                                   r_data=None, theta_data=None,
                                                   system="cartesian")
+    else:
+        boundaries = convert_boundaries_dictionary(boundaries,
+                                                   system="cartesian")
 
     # Calculate overlaps
     overlaps = calculate_overlaps(x_data=x_data, y_data=y_data, z_data=z_data,
@@ -218,68 +220,91 @@ def generate_cartesian_mesh(x_divisions, y_divisions, z_divisions,
               - Boundaries: A dictionary of x, y, and z limits.
     """
 
-    if cylindrical_mesh_shape:
-        if radius is None or base_level is None or height is None:
-            raise ValueError("""Cylinder data must be provided for
-                             cylindrical_mesh_shape = True""")
-        else:
-            # Create grid points in x, y, and z directions
-            x_bounds = np.linspace(-radius, radius, x_divisions + 1)
-            y_bounds = np.linspace(-radius, radius, y_divisions + 1)
-            z_bounds = np.linspace(base_level, base_level + height,
-                                z_divisions + 1)
-    else:
-        if boundaries is None:
-            raise ValueError("""Boundaries must be specified for
-                             cylindrical_mesh_shape = False or None""")
-        else:
-            x_min, x_max = boundaries["x_min"], boundaries["x_max"]
-            y_min, y_max = boundaries["y_min"], boundaries["y_max"]
-            z_min, z_max = boundaries["z_min"], boundaries["z_max"]
-            x_bounds = np.linspace(x_min, x_max, x_divisions + 1)
-            y_bounds = np.linspace(y_min, y_max, y_divisions + 1)
-            z_bounds = np.linspace(z_min, z_max, z_divisions + 1)
+    print("WARNING: Function generate_cartesian_mesh is now deprecated. Use Mesh class instead (see documentation).")
 
-    mesh_boundaries = []
+    # DEPRECATED FUNCTIONALITY # NOW USE MESH CLASS INSTEAD #
 
-    # Loop through Cartesian cells
-    for i in range(x_divisions):
-        for j in range(y_divisions):
-            for k in range(z_divisions):
-                x_min, x_max = x_bounds[i], x_bounds[i + 1]
-                y_min, y_max = y_bounds[j], y_bounds[j + 1]
-                z_min, z_max = z_bounds[k], z_bounds[k + 1]
+    # if cylindrical_mesh_shape:
+    #     if radius is None or base_level is None or height is None:
+    #         raise ValueError("""Cylinder data must be provided for
+    #                          cylindrical_mesh_shape = True""")
+    #     else:
+    #         # Create grid points in x, y, and z directions
+    #         x_bounds = np.linspace(-radius, radius, x_divisions + 1)
+    #         y_bounds = np.linspace(-radius, radius, y_divisions + 1)
+    #         z_bounds = np.linspace(base_level, base_level + height,
+    #                             z_divisions + 1)
+    # else:
+    #     if boundaries is None:
+    #         raise ValueError("""Boundaries must be specified for
+    #                          cylindrical_mesh_shape = False or None""")
+    #     else:
+    #         x_min, x_max = boundaries["x_min"], boundaries["x_max"]
+    #         y_min, y_max = boundaries["y_min"], boundaries["y_max"]
+    #         z_min, z_max = boundaries["z_min"], boundaries["z_max"]
+    #         x_bounds = np.linspace(x_min, x_max, x_divisions + 1)
+    #         y_bounds = np.linspace(y_min, y_max, y_divisions + 1)
+    #         z_bounds = np.linspace(z_min, z_max, z_divisions + 1)
 
-                if cylindrical_mesh_shape:
-                    # Check if the center of the cell is inside the cylinder
-                    corners = [
-                        (x_min, y_min), (x_min, y_max),
-                        (x_max, y_min), (x_max, y_max),
-                    ]
-                    distances = [np.sqrt(x**2 + y**2) for x, y in corners]
-                    if not all(d >= radius for d in distances):
-                        mesh_boundaries.append((
-                            (i, j, k),  # Division indices
-                            {
-                                "x_min": x_min,
-                                "x_max": x_max,
-                                "y_min": y_min,
-                                "y_max": y_max,
-                                "z_min": z_min,
-                                "z_max": z_max,
-                            }
-                        ))
-                else:
-                    mesh_boundaries.append((
-                            (i, j, k),  # Division indices
-                            {
-                                "x_min": x_min,
-                                "x_max": x_max,
-                                "y_min": y_min,
-                                "y_max": y_max,
-                                "z_min": z_min,
-                                "z_max": z_max,
-                            }
-                        ))
+    # mesh_boundaries = []
 
-    return mesh_boundaries
+    # # Loop through Cartesian cells
+    # for i in range(x_divisions):
+    #     for j in range(y_divisions):
+    #         for k in range(z_divisions):
+    #             x_min, x_max = x_bounds[i], x_bounds[i + 1]
+    #             y_min, y_max = y_bounds[j], y_bounds[j + 1]
+    #             z_min, z_max = z_bounds[k], z_bounds[k + 1]
+
+    #             if cylindrical_mesh_shape:
+    #                 # Check if the center of the cell is inside the cylinder
+    #                 corners = [
+    #                     (x_min, y_min), (x_min, y_max),
+    #                     (x_max, y_min), (x_max, y_max),
+    #                 ]
+    #                 distances = [np.sqrt(x**2 + y**2) for x, y in corners]
+    #                 if not all(d >= radius for d in distances):
+    #                     mesh_boundaries.append((
+    #                         (i, j, k),  # Division indices
+    #                         {
+    #                             "x_min": x_min,
+    #                             "x_max": x_max,
+    #                             "y_min": y_min,
+    #                             "y_max": y_max,
+    #                             "z_min": z_min,
+    #                             "z_max": z_max,
+    #                         }
+    #                     ))
+    #             else:
+    #                 mesh_boundaries.append((
+    #                         (i, j, k),  # Division indices
+    #                         {
+    #                             "x_min": x_min,
+    #                             "x_max": x_max,
+    #                             "y_min": y_min,
+    #                             "y_max": y_max,
+    #                             "z_min": z_min,
+    #                             "z_max": z_max,
+    #                         }
+    #                     ))
+
+    # return mesh_boundaries
+
+    divisions = {"x": x_divisions,
+                 "y": y_divisions,
+                 "z": z_divisions}
+
+    params = {**boundaries,
+              "cylinder_radius": radius,
+              "cylinder_base_level": base_level,
+              "cylinder_height": height,
+              "cylindrical_mesh_shape": cylindrical_mesh_shape}
+
+    # Generate Cartesian mesh
+    cartesian_mesh = Mesh(system="cartesian",
+                          divisions=divisions,
+                          **params)
+    
+    mesh_boundaries = cartesian_mesh.cell_boundaries
+
+    return list(enumerate(mesh_boundaries))
