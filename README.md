@@ -37,7 +37,6 @@ Above image: Cross-sectional packing density distribution of 100,000 particles (
 ### Dependencies
 
 - **NumPy**: For efficient numerical operations.
-- **SciPy**: For numerical integration and advanced mathematical functions.
 - **PyVista**: For reading and handling `.vtk` files.
 
 ---

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "packing3d"
-version = "0.1.5"
+version = "0.1.7"
 description = "A package for calculating packing density of particles in Cartesian and cylindrical coordinate systems."
 authors = [
     { name = "Freddie Barter", email = "fjbarter@outlook.com" }
@@ -23,7 +23,6 @@ classifiers = [
 
 dependencies = [
     "numpy>=1.21",
-    "scipy>=1.7",
     "pyvista>=0.34",
 ]
 

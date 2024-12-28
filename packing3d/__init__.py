@@ -1,6 +1,6 @@
 # __init__.py
 
-__version__ = "0.1.5"
+__version__ = "0.1.7"
 __author__ = "Freddie Barter"
 __email__ = "fjbarter@outlook.com"
 

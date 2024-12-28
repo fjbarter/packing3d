@@ -2,7 +2,84 @@
 # the packing density calculator
 
 import numpy as np
-from scipy.integrate import simpson
+
+def simpson(x, y):
+    """
+    Numerically integrates a function using Simpson's 1/3 rule for evenly
+    spaced points.
+
+    If the number of points is odd, the entire range is integrated using
+    Simpson's rule. If the number of points is even, Simpson's rule is applied
+    to the first `n-1` points, and the trapezoidal rule is applied to the last
+    interval.
+
+    Parameters
+    ----------
+    x : array_like
+        1D array of x-coordinates at which the function is sampled. The
+        x-coordinates must be evenly spaced within a tolerance of `1e-10`.
+    y : array_like
+        1D array of y-coordinates (function values) corresponding to the
+        x-coordinates.
+
+    Returns
+    -------
+    float
+        The estimated integral of the function.
+
+    Raises
+    ------
+    ValueError
+        If `x` and `y` have different lengths.
+        If `x` is not evenly spaced within a tolerance of `1e-10`.
+
+    Example
+    --------
+    Integrate a cubic function between 1 and 5:
+    
+    >>> import numpy as np
+    >>> def func(x):
+    ...     return x**3 - 6*x**2 + 11*x - 6
+    >>> x = np.linspace(1, 5, num=1000)
+    >>> y = func(x)
+    >>> result = simpsons(x, y)
+    16.0000  # Approximation of the integral
+    """
+
+    # Check if x and y have the same length
+    if len(x) != len(y):
+        raise ValueError("x and y must have the same length.")
+
+    # Check for evenly spaced points
+    epsilon = 1e-10
+    spacings = np.diff(x)
+    if not np.allclose(spacings, spacings[0], atol=epsilon):
+        raise ValueError("""x-coordinates are not evenly spaced within
+                         tolerance of epsilon = 1e-10.""")
+
+    num_points = len(x)
+
+    if num_points % 2 == 0:
+        print(f"Warning: Even number of points detected. Applying trapezoidal \
+rule for the last interval.")
+        # Apply Simpson's rule to the first n-1 points
+        h = x[1] - x[0]
+        n = num_points - 2  # Exclude the last point
+        result = (h / 3) * (
+            y[0] + y[n] + 4 * np.sum(y[1:n:2]) + 2 * np.sum(y[2:n-1:2])
+                           )
+        # Apply trapezoidal rule for the last interval
+        result += 0.5 * (x[-1] - x[-2]) * (y[-1] + y[-2])
+        return result
+
+    # Standard Simpson's rule
+    h = x[1] - x[0]
+    n = num_points - 1
+    result = (h / 3) * (
+        y[0] + y[-1] + 4 * np.sum(y[1:n:2]) + 2 * np.sum(y[2:n-1:2])
+                       )
+    return result
+
 
 def double_circle_intersection(r, a, b) -> float:
     """
@@ -210,7 +287,7 @@ def triple_cap_intersection(R, a, b, c) -> float:
 
 def triple_cap_integrator(R, a, b,
                           c_lim_lower, c_lim_upper,
-                          num_simpson_sample_points=6) -> float:
+                          num_simpson_sample_points=7) -> float:
     """
     Function for integrating the differential volume of slices of a double
     spherical cap intersection. R is the radius of the sphere, a and b are the
@@ -432,7 +509,7 @@ def circle_annulus_intersection(r_p, r, r_overlap, min_boundary=False):
 
 def sphere_cylinder_integrator(R_p, r, r_overlap, z_lim_lower, z_lim_upper,
                                min_boundary=False,
-                               num_simpson_sample_points=6):
+                               num_simpson_sample_points=7):
     """
     Numerically integrate the volume of a sphere intersecting with a
     cylindrical boundary.
@@ -497,7 +574,7 @@ def sphere_cylinder_intersection(R_p, r, r_overlap, min_boundary):
     z_lim_lower = 0
     volume = 2*sphere_cylinder_integrator(R_p, r, r_overlap, z_lim_lower,
                                           z_lim_upper, min_boundary,
-                                          num_simpson_sample_points=6)
+                                          num_simpson_sample_points=7)
     return volume
 
 
@@ -549,7 +626,7 @@ def sphere_cylinder_plane_intersection(R_p, r, r_overlap, z_overlap,
 
     volume = sphere_cylinder_integrator(R_p, r, r_overlap, z_lim_lower,
                                         z_lim_upper, min_boundary,
-                                        num_simpson_sample_points=6)
+                                        num_simpson_sample_points=7)
     return volume
 
 
